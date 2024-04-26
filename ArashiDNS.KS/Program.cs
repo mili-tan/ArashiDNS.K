@@ -47,7 +47,7 @@ namespace ArashiDNS.KS
 
                             var query = DnsMessage.Parse(buffer.Take(len).ToArray());
                             var answer =
-                                await new DnsClient(IPAddress.Parse("8.8.8.8"), 10000).SendMessageAsync(query) ??
+                                await new DnsClient(IPAddress.Parse("127.0.0.1"), 10000).SendMessageAsync(query) ??
                                 new DnsMessage() {ReturnCode = ReturnCode.ServerFailure};
 
                             await stream.WriteAsync(answer?.Encode().ToArraySegment(false).ToArray());
