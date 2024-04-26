@@ -33,7 +33,11 @@ namespace ArashiDNS.K
             var buffer = new byte[2048];
             var dnsBytes = query.Encode().ToArraySegment(false).ToArray();
 
-            using var connection = await KcpConnection.ConnectAsync(ServerEndPoint);
+            using var connection = await KcpConnection.ConnectAsync(new KcpClientConnectionOptions()
+            {
+                RemoteEndPoint = ServerEndPoint,
+                UpdatePeriod = TimeSpan.FromMilliseconds(1),
+            });
             await using var stream = await connection.OpenOutboundStreamAsync();
 
             await stream.WriteAsync(dnsBytes);
