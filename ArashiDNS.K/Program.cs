@@ -1,6 +1,8 @@
 ﻿using ARSoft.Tools.Net.Dns;
 using KcpTransport;
 using System.Net;
+using System.Text;
+using ArashiDNS.Ching;
 
 namespace ArashiDNS.K
 {
@@ -8,6 +10,7 @@ namespace ArashiDNS.K
     {
         public static IPEndPoint ListenerEndPoint = new(IPAddress.Loopback, 25353);
         public static IPEndPoint ServerEndPoint = new(IPAddress.Loopback, 20053);
+        public static string PassStr = Convert.ToBase64String(Encoding.UTF8.GetBytes("dnsoverkcp"));
 
         static void Main(string[] args)
         {
@@ -29,22 +32,32 @@ namespace ArashiDNS.K
 
         private static async Task DnsServerOnQueryReceived(object sender, QueryReceivedEventArgs e)
         {
-            if (e.Query is not DnsMessage query) return;
-            var buffer = new byte[2048];
-            var dnsBytes = query.Encode().ToArraySegment(false).ToArray();
-
-            using var connection = await KcpConnection.ConnectAsync(new KcpClientConnectionOptions()
+            try
             {
-                RemoteEndPoint = ServerEndPoint,
-                UpdatePeriod = TimeSpan.FromMilliseconds(1),
-            });
-            await using var stream = await connection.OpenOutboundStreamAsync();
+                if (e.Query is not DnsMessage query) return;
 
-            await stream.WriteAsync(dnsBytes);
-            var len = await stream.ReadAsync(buffer);
+                using var connection = await KcpConnection.ConnectAsync(new KcpClientConnectionOptions()
+                {
+                    RemoteEndPoint = ServerEndPoint,
+                    UpdatePeriod = TimeSpan.FromMilliseconds(1),
+                });
+                await using var stream = await connection.OpenOutboundStreamAsync();
 
-            var answer = DnsMessage.Parse(buffer.Take(len).ToArray());
-            e.Response = answer;
+                var dnsBytes = query.Encode().ToArraySegment(false).ToArray();
+                dnsBytes = Table.ConfuseBytes(dnsBytes, PassStr);
+                await stream.WriteAsync(dnsBytes);
+
+                var buffer = new byte[2048];
+                var len = await stream.ReadAsync(buffer);
+                buffer = Table.DeConfuseBytes(buffer, PassStr);
+
+                var answer = DnsMessage.Parse(buffer.Take(len).ToArray());
+                e.Response = answer;
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception);
+            }
         }
     }
 }
