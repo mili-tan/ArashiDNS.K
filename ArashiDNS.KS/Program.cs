@@ -1,15 +1,19 @@
 ﻿using System.Net;
-using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Text;
 using ArashiDNS.Ching;
 using ARSoft.Tools.Net.Dns;
 using KcpTransport;
+using NaCl.Core;
+using ChaCha20Poly1305 = NaCl.Core.ChaCha20Poly1305;
+
 
 namespace ArashiDNS.KS
 {
     internal class Program
     {
         public static string PassStr = Convert.ToBase64String(Encoding.UTF8.GetBytes("dnsoverkcp"));
+        public static bool UseTable = false;
 
         static async Task Main(string[] args)
         {
@@ -45,9 +49,15 @@ namespace ArashiDNS.KS
                     {
                         while (true)
                         {
-                            var buffer = new byte[2048];
+                            var buffer = new byte[4096];
                             var len = await stream.ReadAsync(buffer);
-                            buffer = Table.DeConfuseBytes(buffer, PassStr);
+
+                            if (UseTable) buffer = Table.DeConfuseBytes(buffer, PassStr);
+                            else
+                                new ChaCha20(
+                                        SHA512.HashData(Encoding.UTF8.GetBytes(PassStr)).Take(32).ToArray(), DateTime.Now.Minute)
+                                    .Decrypt(buffer, SHA512.HashData(Encoding.UTF8.GetBytes(DateTime.UtcNow.ToString("yyyyMMddHHmm")))
+                                        .TakeLast(12).ToArray(), buffer);
 
                             var query = DnsMessage.Parse(buffer.Take(len).ToArray());
                             var answer =
@@ -55,7 +65,13 @@ namespace ArashiDNS.KS
                                 new DnsMessage() {ReturnCode = ReturnCode.ServerFailure};
 
                             var dnsBytes = answer.Encode().ToArraySegment(false).ToArray();
-                            dnsBytes = Table.ConfuseBytes(dnsBytes, PassStr);
+                            if (UseTable)
+                                dnsBytes = Table.ConfuseBytes(dnsBytes, PassStr);
+                            else
+                                new ChaCha20(
+                                        SHA512.HashData(Encoding.UTF8.GetBytes(PassStr)).Take(32).ToArray(), DateTime.Now.Minute)
+                                    .Encrypt(buffer, SHA512.HashData(Encoding.UTF8.GetBytes(DateTime.UtcNow.ToString("yyyyMMddHHmm")))
+                                        .TakeLast(12).ToArray(), buffer);
                             await stream.WriteAsync(dnsBytes);
 
                             // Send to Client(Unreliable)

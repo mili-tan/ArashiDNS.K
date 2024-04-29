@@ -1,8 +1,12 @@
 ﻿using ARSoft.Tools.Net.Dns;
 using KcpTransport;
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 using ArashiDNS.Ching;
+using NaCl.Core;
+using ChaCha20Poly1305 = NaCl.Core.ChaCha20Poly1305;
+using Org.BouncyCastle.Utilities;
 
 namespace ArashiDNS.K
 {
@@ -11,6 +15,7 @@ namespace ArashiDNS.K
         public static IPEndPoint ListenerEndPoint = new(IPAddress.Loopback, 25353);
         public static IPEndPoint ServerEndPoint = new(IPAddress.Loopback, 20053);
         public static string PassStr = Convert.ToBase64String(Encoding.UTF8.GetBytes("dnsoverkcp"));
+        public static bool UseTable = false;
 
         static void Main(string[] args)
         {
@@ -44,12 +49,26 @@ namespace ArashiDNS.K
                 await using var stream = await connection.OpenOutboundStreamAsync();
 
                 var dnsBytes = query.Encode().ToArraySegment(false).ToArray();
-                dnsBytes = Table.ConfuseBytes(dnsBytes, PassStr);
+
+                if (UseTable)
+                    dnsBytes = Table.ConfuseBytes(dnsBytes, PassStr);
+                else
+                    new ChaCha20(
+                            SHA512.HashData(Encoding.UTF8.GetBytes(PassStr)).Take(32).ToArray(), DateTime.Now.Minute)
+                        .Encrypt(dnsBytes,
+                            SHA512.HashData(Encoding.UTF8.GetBytes(DateTime.UtcNow.ToString("yyyyMMddHHmm")))
+                                .TakeLast(12).ToArray(), dnsBytes);
                 await stream.WriteAsync(dnsBytes);
 
-                var buffer = new byte[2048];
+                var buffer = new byte[4096];
                 var len = await stream.ReadAsync(buffer);
-                buffer = Table.DeConfuseBytes(buffer, PassStr);
+                if (UseTable)
+                    buffer = Table.DeConfuseBytes(buffer, PassStr);
+                else
+                    new ChaCha20(
+                            SHA512.HashData(Encoding.UTF8.GetBytes(PassStr)).Take(32).ToArray(), DateTime.Now.Minute)
+                        .Decrypt(dnsBytes, SHA512.HashData(Encoding.UTF8.GetBytes(DateTime.UtcNow.ToString("yyyyMMddHHmm")))
+                            .TakeLast(12).ToArray(), dnsBytes);
 
                 var answer = DnsMessage.Parse(buffer.Take(len).ToArray());
                 e.Response = answer;
