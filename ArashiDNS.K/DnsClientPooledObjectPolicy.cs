@@ -1,8 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using Microsoft.Extensions.ObjectPool;
-using System.Net;
-using ARSoft.Tools.Net.Dns;
+﻿using Microsoft.Extensions.ObjectPool;
 using KcpTransport;
 
 namespace Arashi.Aoi

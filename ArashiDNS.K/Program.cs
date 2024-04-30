@@ -3,8 +3,10 @@ using KcpTransport;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using Arashi.Aoi;
 using ArashiDNS.Ching;
 using NaCl.Core;
+using Microsoft.Extensions.ObjectPool;
 
 namespace ArashiDNS.K
 {
@@ -14,6 +16,14 @@ namespace ArashiDNS.K
         public static IPEndPoint ServerEndPoint = new(IPAddress.Loopback, 20053);
         public static string PassStr = Convert.ToBase64String(Encoding.UTF8.GetBytes("dnsoverkcp"));
         public static bool UseTable = false;
+
+        public static DefaultObjectPool<KcpConnection> KcpPool = new(new KcpConnectionPooledObjectPolicy(
+            new KcpClientConnectionOptions()
+            {
+                RemoteEndPoint = ServerEndPoint,
+                UpdatePeriod = TimeSpan.FromMilliseconds(1),
+            }));
+
 
         static void Main(string[] args)
         {
@@ -38,13 +48,8 @@ namespace ArashiDNS.K
             try
             {
                 if (e.Query is not DnsMessage query) return;
-
-                using var connection = await KcpConnection.ConnectAsync(new KcpClientConnectionOptions()
-                {
-                    RemoteEndPoint = ServerEndPoint,
-                    UpdatePeriod = TimeSpan.FromMilliseconds(1),
-                });
-                await using var stream = await connection.OpenOutboundStreamAsync();
+                var connection = KcpPool.Get();
+                var stream = await connection.OpenOutboundStreamAsync();
 
                 var dnsBytes = query.Encode().ToArraySegment(false).ToArray();
 
@@ -67,6 +72,8 @@ namespace ArashiDNS.K
                             SHA512.HashData(Encoding.UTF8.GetBytes(PassStr)).Take(32).ToArray(), DateTime.Now.Minute)
                         .Decrypt(dnsBytes, SHA512.HashData(Encoding.UTF8.GetBytes(DateTime.UtcNow.ToString("yyyyMMddHHmm")))
                             .TakeLast(12).ToArray(), dnsBytes);
+
+                KcpPool.Return(connection);
 
                 var answer = DnsMessage.Parse(buffer.Take(len).ToArray());
                 e.Response = answer;
