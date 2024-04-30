@@ -5,8 +5,6 @@ using System.Security.Cryptography;
 using System.Text;
 using ArashiDNS.Ching;
 using NaCl.Core;
-using ChaCha20Poly1305 = NaCl.Core.ChaCha20Poly1305;
-using Org.BouncyCastle.Utilities;
 
 namespace ArashiDNS.K
 {
