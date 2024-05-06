@@ -105,14 +105,11 @@ namespace ArashiDNS.KS
                                     .Decrypt(buffer, SHA512.HashData(Encoding.UTF8.GetBytes(DateTime.UtcNow.ToString("yyyyMMddHHmm")))
                                         .TakeLast(12).ToArray(), buffer);
 
+                            var client = UpPool.Get();
                             var query = DnsMessage.Parse(buffer.Take(len).ToArray());
-                            var answer =
-                                await new DnsClient(new[] {UpEndPoint.Address},
-                                    new IClientTransport[]
-                                    {
-                                        new UdpClientTransport(UpEndPoint.Port), new TcpClientTransport(UpEndPoint.Port)
-                                    }).SendMessageAsync(query) ??
-                                new DnsMessage() {ReturnCode = ReturnCode.ServerFailure};
+                            var answer = await client.SendMessageAsync(query) ??
+                                         new DnsMessage() {ReturnCode = ReturnCode.ServerFailure};
+                            UpPool.Return(client);
 
                             var dnsBytes = answer.Encode().ToArraySegment(false).ToArray();
                             if (UseTable)
