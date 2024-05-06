@@ -142,7 +142,7 @@ namespace ArashiDNS.KS
         {
             Console.Write($"Q: {message.Questions.FirstOrDefault()} ");
             Console.Write($"R: {message.ReturnCode} ");
-            foreach (var item in message.AnswerRecords) Console.Write($" A:{item} ");
+            foreach (var item in message.AnswerRecords) Console.Write($"A:{item} ");
             Console.Write(Environment.NewLine);
         }
     }
