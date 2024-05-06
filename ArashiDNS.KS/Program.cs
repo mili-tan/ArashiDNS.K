@@ -4,6 +4,7 @@ using System.Text;
 using ArashiDNS.Ching;
 using ARSoft.Tools.Net.Dns;
 using KcpTransport;
+using McMaster.Extensions.CommandLineUtils;
 using NaCl.Core;
 
 
@@ -18,17 +19,51 @@ namespace ArashiDNS.KS
 
         static async Task Main(string[] args)
         {
-            await Task.WhenAny(RunServer());
-
-            if (!Console.IsInputRedirected && Console.KeyAvailable)
+            var cmd = new CommandLineApplication
             {
-                while (true)
-                    if (Console.ReadKey().KeyChar == 'q')
-                        Environment.Exit(0);
-            }
+                Name = "ArashiDNS.KS",
+                Description = "ArashiDNS.KS - DNS over KCP Server" +
+                  Environment.NewLine +
+                  $"Copyright (c) {DateTime.Now.Year} Milkey Tan. Code released under the MPL License"
+            };
+            cmd.HelpOption("-?|-h|--help");
+            var isZh = Thread.CurrentThread.CurrentCulture.Name.Contains("zh");
+            var upArgument = cmd.Argument("target",
+                isZh ? "目标上游 DNS 端点" : "Target upstream DNS service endpoint");
+            var ipOption = cmd.Option<string>("-l|--listen <IPEndPoint>",
+                isZh ? "监听的地址与端口" : "Set server listening address and port", CommandOptionType.SingleValue);
+            var passOption = cmd.Option<int>("-p|--pass <pass>",
+                isZh ? "用于加密或混淆的口令" : "Password for encryption or obfuscation", CommandOptionType.SingleValue);
+            var cOption = cmd.Option("-c", isZh ? "使用混淆而不是加密（不安全！）" : "Use obfuscation instead of encryption (unsafe!)",
+                CommandOptionType.NoValue);
 
-            EventWaitHandle wait = new AutoResetEvent(false);
-            while (true) wait.WaitOne();
+            cmd.OnExecute(() =>
+            {
+                if (isZh) UpEndPoint = new(IPAddress.Parse("127.0.0.1"), 53);
+                if (upArgument.HasValue) UpEndPoint = IPEndPoint.Parse(upArgument.Value!);
+                if (ipOption.HasValue()) ListenerEndPoint = IPEndPoint.Parse(ipOption.Value()!);
+                if (passOption.HasValue()) PassStr = Convert.ToBase64String(Encoding.UTF8.GetBytes(passOption.Value()!));
+                if (cOption.HasValue()) UseTable = true;
+                
+                Task.WhenAny(RunServer());
+
+                Console.WriteLine("ArashiDNS.KS - DNS over KCP Server");
+                Console.WriteLine("The forwarded upstream is: " + UpEndPoint);
+                Console.WriteLine("Now listening on: " + ListenerEndPoint);
+                Console.WriteLine("Application started. Press Ctrl+C / q to shut down.");
+
+                if (!Console.IsInputRedirected && Console.KeyAvailable)
+                {
+                    while (true)
+                        if (Console.ReadKey().KeyChar == 'q')
+                            Environment.Exit(0);
+                }
+
+                EventWaitHandle wait = new AutoResetEvent(false);
+                while (true) wait.WaitOne();
+            });
+
+            cmd.Execute(args);
         }
 
         static async Task RunServer()
