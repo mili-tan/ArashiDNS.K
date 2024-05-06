@@ -23,7 +23,7 @@ namespace ArashiDNS.K
             {
                 RemoteEndPoint = ServerEndPoint,
                 UpdatePeriod = TimeSpan.FromMilliseconds(1),
-            }));
+            }), 10);
 
 
         static void Main(string[] args)
