@@ -39,7 +39,7 @@ namespace ArashiDNS.KS
 
             cmd.OnExecute(() =>
             {
-                if (isZh) UpEndPoint = new(IPAddress.Parse("127.0.0.1"), 53);
+                if (isZh) UpEndPoint = new(IPAddress.Parse("119.29.29.29"), 53);
                 if (upArgument.HasValue) UpEndPoint = IPEndPoint.Parse(upArgument.Value!);
                 if (ipOption.HasValue()) ListenerEndPoint = IPEndPoint.Parse(ipOption.Value()!);
                 if (passOption.HasValue()) PassStr = Convert.ToBase64String(Encoding.UTF8.GetBytes(passOption.Value()!));
