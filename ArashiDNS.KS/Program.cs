@@ -5,13 +5,14 @@ using ArashiDNS.Ching;
 using ARSoft.Tools.Net.Dns;
 using KcpTransport;
 using NaCl.Core;
-using ChaCha20Poly1305 = NaCl.Core.ChaCha20Poly1305;
 
 
 namespace ArashiDNS.KS
 {
     internal class Program
     {
+        public static IPEndPoint ListenerEndPoint = new(IPAddress.Loopback, 20053);
+        public static IPEndPoint UpEndPoint = new(IPAddress.Parse("8.8.8.8"), 53);
         public static string PassStr = Convert.ToBase64String(Encoding.UTF8.GetBytes("dnsoverkcp"));
         public static bool UseTable = false;
 
@@ -32,7 +33,7 @@ namespace ArashiDNS.KS
 
         static async Task RunServer()
         {
-            var listener = await KcpListener.ListenAsync("0.0.0.0", 20053);
+            var listener = await KcpListener.ListenAsync(ListenerEndPoint);
 
             while (true)
             {
@@ -61,7 +62,11 @@ namespace ArashiDNS.KS
 
                             var query = DnsMessage.Parse(buffer.Take(len).ToArray());
                             var answer =
-                                await new DnsClient(IPAddress.Parse("127.0.0.1"), 10000).SendMessageAsync(query) ??
+                                await new DnsClient(new[] {UpEndPoint.Address},
+                                    new IClientTransport[]
+                                    {
+                                        new UdpClientTransport(UpEndPoint.Port), new TcpClientTransport(UpEndPoint.Port)
+                                    }).SendMessageAsync(query) ??
                                 new DnsMessage() {ReturnCode = ReturnCode.ServerFailure};
 
                             var dnsBytes = answer.Encode().ToArraySegment(false).ToArray();
