@@ -20,6 +20,7 @@ namespace ArashiDNS.KS
         public static string PassStr = Convert.ToBase64String(Encoding.UTF8.GetBytes("dnsoverkcp"));
         public static bool UseTable = false;
         public static int Timeout = 10009;
+        public static bool UseLog;
 
         public static DefaultObjectPool<DnsClient> UpPool = new(new DnsClientPooledObjectPolicy(
             new[] {UpEndPoint.Address}, Timeout, UpEndPoint.Port), 30);
@@ -45,6 +46,8 @@ namespace ArashiDNS.KS
                 CommandOptionType.NoValue);
             var wOption = cmd.Option<int>("-w <timeout>",
                 isZh ? "等待回复的超时时间(毫秒)。" : "Timeout time to wait for reply", CommandOptionType.SingleValue);
+            var logOption = cmd.Option("-log", isZh ? "打印查询与响应日志。" : "Print query and response logs",
+                CommandOptionType.NoValue);
 
             cmd.OnExecute(() =>
             {
@@ -54,7 +57,8 @@ namespace ArashiDNS.KS
                 if (passOption.HasValue()) PassStr = Convert.ToBase64String(Encoding.UTF8.GetBytes(passOption.Value()!));
                 if (wOption.HasValue()) Timeout = int.Parse(wOption.Value()!);
                 if (cOption.HasValue()) UseTable = true;
-                
+                if (logOption.HasValue()) UseLog = true;
+
                 Task.WhenAny(RunServer());
 
                 Console.WriteLine("ArashiDNS.KS - DNS over KCP Server");
@@ -112,8 +116,8 @@ namespace ArashiDNS.KS
                             UpPool.Return(client);
 
                             var dnsBytes = answer.Encode().ToArraySegment(false).ToArray();
-                            if (UseTable)
-                                dnsBytes = Table.ConfuseBytes(dnsBytes, PassStr);
+                            if (UseLog) await Task.Run(() => PrintDnsMessage(answer));
+                            if (UseTable) dnsBytes = Table.ConfuseBytes(dnsBytes, PassStr);
                             else
                                 new ChaCha20(
                                         SHA512.HashData(Encoding.UTF8.GetBytes(PassStr)).Take(32).ToArray(), DateTime.Now.Minute)
@@ -132,6 +136,14 @@ namespace ArashiDNS.KS
                     }
                 }
             }
+        }
+
+        public static void PrintDnsMessage(DnsMessage message)
+        {
+            Console.Write($"Q: {message.Questions.FirstOrDefault()} ");
+            Console.Write($"R: {message.ReturnCode} ");
+            foreach (var item in message.AnswerRecords) Console.Write($" A:{item} ");
+            Console.Write(Environment.NewLine);
         }
     }
 }
