@@ -46,7 +46,7 @@ namespace ArashiDNS.KS
                 CommandOptionType.NoValue);
             var wOption = cmd.Option<int>("-w <timeout>",
                 isZh ? "等待回复的超时时间(毫秒)。" : "Timeout time to wait for reply", CommandOptionType.SingleValue);
-            var logOption = cmd.Option("-log", isZh ? "打印查询与响应日志。" : "Print query and response logs",
+            var logOption = cmd.Option("--log", isZh ? "打印查询与响应日志。" : "Print query and response logs",
                 CommandOptionType.NoValue);
 
             cmd.OnExecute(() =>
