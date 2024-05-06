@@ -1,11 +1,14 @@
 ﻿using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using Arashi.Aoi;
 using ArashiDNS.Ching;
 using ARSoft.Tools.Net.Dns;
 using KcpTransport;
 using McMaster.Extensions.CommandLineUtils;
+using Microsoft.Extensions.ObjectPool;
 using NaCl.Core;
+using static Org.BouncyCastle.Math.EC.ECCurve;
 
 
 namespace ArashiDNS.KS
@@ -16,6 +19,10 @@ namespace ArashiDNS.KS
         public static IPEndPoint UpEndPoint = new(IPAddress.Parse("8.8.8.8"), 53);
         public static string PassStr = Convert.ToBase64String(Encoding.UTF8.GetBytes("dnsoverkcp"));
         public static bool UseTable = false;
+        public static int Timeout = 10009;
+
+        public static DefaultObjectPool<DnsClient> UpPool = new(new DnsClientPooledObjectPolicy(
+            new[] {UpEndPoint.Address}, Timeout, UpEndPoint.Port), 30);
 
         static async Task Main(string[] args)
         {
@@ -36,6 +43,8 @@ namespace ArashiDNS.KS
                 isZh ? "用于加密或混淆的口令" : "Password for encryption or obfuscation", CommandOptionType.SingleValue);
             var cOption = cmd.Option("-c", isZh ? "使用混淆而不是加密（不安全！）" : "Use obfuscation instead of encryption (unsafe!)",
                 CommandOptionType.NoValue);
+            var wOption = cmd.Option<int>("-w <timeout>",
+                isZh ? "等待回复的超时时间(毫秒)。" : "Timeout time to wait for reply", CommandOptionType.SingleValue);
 
             cmd.OnExecute(() =>
             {
@@ -43,6 +52,7 @@ namespace ArashiDNS.KS
                 if (upArgument.HasValue) UpEndPoint = IPEndPoint.Parse(upArgument.Value!);
                 if (ipOption.HasValue()) ListenerEndPoint = IPEndPoint.Parse(ipOption.Value()!);
                 if (passOption.HasValue()) PassStr = Convert.ToBase64String(Encoding.UTF8.GetBytes(passOption.Value()!));
+                if (wOption.HasValue()) Timeout = int.Parse(wOption.Value()!);
                 if (cOption.HasValue()) UseTable = true;
                 
                 Task.WhenAny(RunServer());
