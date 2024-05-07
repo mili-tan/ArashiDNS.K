@@ -42,7 +42,7 @@ namespace ArashiDNS.K
                 isZh ? "目标 DNS over KCP 端点" : "Target DNS over KCP service endpoint");
             var ipOption = cmd.Option<string>("-l|--listen <IPEndPoint>",
                 isZh ? "监听的地址与端口" : "Set server listening address and port", CommandOptionType.SingleValue);
-            var passOption = cmd.Option<int>("-p|--pass <pass>",
+            var passOption = cmd.Option<string>("-p|--pass <pass>",
                 isZh ? "用于加密或混淆的口令" : "Password for encryption or obfuscation", CommandOptionType.SingleValue);
             var cOption = cmd.Option("-c", isZh ? "使用混淆而不是加密（不安全！）" : "Use obfuscation instead of encryption (unsafe!)",
                 CommandOptionType.NoValue);
