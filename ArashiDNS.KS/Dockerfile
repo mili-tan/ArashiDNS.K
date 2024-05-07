@@ -6,6 +6,7 @@ WORKDIR /app
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
+COPY . /src
 WORKDIR /src
 RUN dotnet restore "./ArashiDNS.KS.csproj"
 COPY . .
