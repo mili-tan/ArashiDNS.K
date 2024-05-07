@@ -18,6 +18,6 @@ docker run -d -p 127.0.0.1:53:53 -p 127.0.0.1:53:53/udp ghcr.io/mili-tan/arashid
 
 ## License
 
-Copyright (c) 2020 Milkey Tan. Code released under the [Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/2.0/). 
+Copyright (c) 2024 Milkey Tan. Code released under the [Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/2.0/). 
 
 <sup>ArashiDNS™ is a trademark of Milkey Tan.</sup>
