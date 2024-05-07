@@ -5,6 +5,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,6 +17,7 @@
     <PackageReference Include="Kai.ARSoft.Tools.Net" Version="3.6.0" />
     <PackageReference Include="KcpTransport" Version="0.0.2" />
     <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="4.1.1" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.19.6" />
     <PackageReference Include="NaCl.Core" Version="2.0.5" />
   </ItemGroup>
 
