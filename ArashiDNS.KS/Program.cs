@@ -15,7 +15,7 @@ namespace ArashiDNS.KS
 {
     internal class Program
     {
-        public static IPEndPoint ListenerEndPoint = new(IPAddress.Loopback, 20053);
+        public static IPEndPoint ListenerEndPoint = new(IPAddress.Any, 20053);
         public static IPEndPoint UpEndPoint = new(IPAddress.Parse("8.8.8.8"), 53);
         public static string PassStr = Convert.ToBase64String(Encoding.UTF8.GetBytes("dnsoverkcp"));
         public static bool UseTable = false;
