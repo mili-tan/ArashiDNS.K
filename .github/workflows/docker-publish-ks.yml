@@ -43,7 +43,7 @@ jobs:
 
       - name: Build image
         run: |
-          cd ./ArashiDNS.K
+          cd ./ArashiDNS.KS
           docker build . --file Dockerfile --tag $IMAGE_NAME
 
       - name: Log into GitHub Container Registry
